@@ -1,0 +1,15 @@
+[Unit]
+Description="Eat My SMS daemon"
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pescheck
+Group=pescheck
+ExecStart=/usr/bin/python3 /usr/local/bin/eat-my-sms.py %I
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
