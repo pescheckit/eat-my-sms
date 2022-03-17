@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 
 import argparse
+import configparser
+import json
 import logging
 import re
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 
-CONFIG_TEMPLATE = '''
+CONFIG = {}
+GNOKII_CONFIG_TEMPLATE = '''
 [global]
 port = /dev/{}
 model = AT
@@ -15,13 +20,33 @@ connection = serial
 serial_baudrate = 57600
 '''
 
+def read_config(path, device):
+    cfg = configparser.ConfigParser()
+    cfg.read(path)
+
+    # If section device does not exist in the config, we need to add it here,
+    # otherwise the get method is going to throw an error
+    if not cfg.has_section(device):
+        cfg.add_section(device)
+
+    CONFIG['webhook_url'] = cfg.get(device, 'webhook_url')
+
+def send_message(message):
+    req = urllib.request.Request(CONFIG['webhook_url'])
+    req.add_header('Content-Type', 'application/json; charset=utf-8')
+    try:
+        urllib.request.urlopen(req, json.dumps(message).encode('utf-8'))
+    except urllib.error.URLError as err:
+        logging.error('Could not send message: {}'.format(message))
+        logging.exception(err)
+
 class Modem:
 	def __init__(self, port, pin='0000'):
 		logging.info('Initializing modem at /dev/{}'.format(port))
 
 		self.pin = pin
 		with tempfile.NamedTemporaryFile(mode='w+t', prefix='gnokii-', delete=False) as config:
-			config.write(CONFIG_TEMPLATE.format(port))
+			config.write(GNOKII_ONFIG_TEMPLATE.format(port))
 			self.config = config.name
 		logging.info('Wrote gnokii config to: {}'.format(self.config))
 
@@ -126,15 +151,17 @@ def main():
 
 	parser = argparse.ArgumentParser(description='SMS reader')
 	parser.add_argument('port', metavar='PORT', type=int, help='Device name to communicate with (ex. ttyACM0, see `ls /dev/ttyACM*`)')
-	parser.add_argument('--pin', type=str, help='PIN to use when unlocking SIM')
+	parser.add_argument('--pin', type=str, default='0000', help='PIN to use when unlocking SIM')
+	parser.add_argument('--config', type=str, default='/etc/eat-my-sms/eat-my-sms.conf', help='Config file to use')
 	args = parser.parse_args()
 
-	modem = Modem(args.port)
+	read_config(args.config, args.port)
+	modem = Modem(args.port, pin=args.pin)
 
 	logging.info('Start reading SMS...')
 	while True:
 		for sms in modem.read_sms():
-			logging.info('SMS received: {}'.format(sms))
+			send_message(sms)
 		time.sleep(3)
 
 if __name__ == '__main__':
