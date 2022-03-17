@@ -9,7 +9,7 @@ import time
 
 CONFIG_TEMPLATE = '''
 [global]
-port = /dev/ttyACM{}
+port = /dev/{}
 model = AT
 connection = serial
 serial_baudrate = 57600
@@ -17,7 +17,7 @@ serial_baudrate = 57600
 
 class Modem:
 	def __init__(self, port, pin='0000'):
-		logging.info('Initializing modem at port {}'.format(port))
+		logging.info('Initializing modem at /dev/{}'.format(port))
 
 		self.pin = pin
 		with tempfile.NamedTemporaryFile(mode='w+t', prefix='gnokii-', delete=False) as config:
@@ -45,7 +45,7 @@ class Modem:
 				break
 		logging.info('Network info: {}'.format(info))
 
-		logging.info('Modem at port {} initialized'.format(port))
+		logging.info('Modem at /dev/{} initialized'.format(port))
 
 	def command(self, *args, input=None):
 		if input:
@@ -125,7 +125,7 @@ def main():
 	logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.INFO)
 
 	parser = argparse.ArgumentParser(description='SMS reader')
-	parser.add_argument('port', metavar='PORT', type=int, help='Number of the port to use (`ls /dev/ttyACM*`)')
+	parser.add_argument('port', metavar='PORT', type=int, help='Device name to communicate with (ex. ttyACM0, see `ls /dev/ttyACM*`)')
 	parser.add_argument('--pin', type=str, help='PIN to use when unlocking SIM')
 	args = parser.parse_args()
 
