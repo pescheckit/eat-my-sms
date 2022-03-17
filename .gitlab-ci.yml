@@ -5,22 +5,10 @@ build-deb:
   image: debian
   stage: build
   script:
-    # Install requirements
-    - apt update && apt install -y debhelper-compat config-package-dev dput-ng
-    # Build package
+    - apt update && apt install -y debhelper-compat config-package-dev
     - dpkg-buildpackage -uc -us
-    # Move artifacts
     - mkdir build
     - mv ../eat-my-sms*.deb build/
-    # Upload package
-    - cd ../
-    - |
-      cat <<EOF > dput.cf
-      [gitlab]
-      method = https
-      fqdn = $CI_DEPLOY_USER:$CI_DEPLOY_PASSWORD@gitlab.com
-      incoming = /api/v4/projects/$CI_PROJECT_ID/packages/debian
-    - dput --config=dput.cf --unchecked --no-upload-log gitlab eat-my-sms*.changes
   artifacts:
     paths:
       - build/*
