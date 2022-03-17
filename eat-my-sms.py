@@ -127,7 +127,7 @@ class Modem:
 		return info
 
 	def read_sms(self):
-		cmd = self.command('--getsms', 'MT', '1', 'end')
+		cmd = self.command('--getsms', 'MT', '1', 'end', '--delete')
 
 		sms = []
 		messages = re.split(r'\d+\. inbox message.*[\n]', cmd[0], flags=re.M | re.I)
