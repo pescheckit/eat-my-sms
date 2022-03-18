@@ -51,7 +51,7 @@ class Modem:
         logging.info('Initializing modem at /dev/{}'.format(port))
 
         with tempfile.NamedTemporaryFile(mode='w+t', prefix='gnokii-', delete=False) as config:
-            config.write(GNOKII_ONFIG_TEMPLATE.format(port))
+            config.write(GNOKII_CONFIG_TEMPLATE.format(port))
             self.config = config.name
         logging.info('Wrote gnokii config to: {}'.format(self.config))
 
