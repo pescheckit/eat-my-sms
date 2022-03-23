@@ -39,7 +39,7 @@ def send_message(message):
         message['extra'] = CONFIG['webhook_extra']
 
     req = urllib.request.Request(CONFIG['webhook_url'])
-    req.add_header('Content-Type', 'application/json; charset=utf-8')
+    req.add_header('Content-Type', 'application/json')
     try:
         urllib.request.urlopen(req, json.dumps(message).encode('utf-8'))
     except urllib.error.URLError as err:
