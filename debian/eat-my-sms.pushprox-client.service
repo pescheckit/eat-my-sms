@@ -1,0 +1,16 @@
+[Unit]
+Description="PushProx client"
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pushprox
+Group=pushprox
+EnvironmentFile=/etc/eat-my-sms/pushprox-client.conf
+ExecStart=/usr/bin/pushprox-client --fqdn ${FQDN} --proxy-url ${PROXY_URL} --tls.cert /etc/eat-my-sms/tls/tls.crt --tls.key /etc/eat-my-sms/tls/tls.key --metrics-addr ""
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

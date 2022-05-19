@@ -1,2 +1,5 @@
 eat-my-sms.conf etc/eat-my-sms
-eat-my-sms.py usr/bin
+eat-my-sms.py usr/share/eat-my-sms
+vendor/prometheus_client usr/share/eat-my-sms
+pushprox-client.conf etc/eat-my-sms
+vendor/pushprox/pushprox-client usr/bin

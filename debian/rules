@@ -2,6 +2,16 @@
 %:
 	dh $@
 
-override_dh_installsystemd:
-	dh_installsystemd
+execute_after_dh_installsystemd:
+	dh_installsystemd --name pushprox
 	dh_installsysusers
+
+execute_before_dh_install:
+	pip install -r requirements.txt -t vendor
+	curl -L https://github.com/prometheus-community/PushProx/releases/download/v0.1.0/PushProx-0.1.0.linux-${DEB_HOST_ARCH}.tar.gz \
+		--output vendor/pushprox.tar.gz
+	mkdir -p vendor/pushprox
+	tar -xf vendor/pushprox.tar.gz -C vendor/pushprox --strip-components=1
+
+execute_after_dh_clean:
+	rm -rf vendor

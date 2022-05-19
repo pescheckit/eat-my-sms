@@ -11,6 +11,8 @@ import time
 import urllib.error
 import urllib.request
 
+from prometheus_client import start_wsgi_server, Counter
+
 CONFIG = {}
 GNOKII_CONFIG_TEMPLATE = '''
 [global]
@@ -19,6 +21,8 @@ model = AT
 connection = serial
 serial_baudrate = 57600
 '''
+PROM_RECEIVED_SMS = None
+PROM_WEBHOOK_FAILED = None
 
 def read_config(path, device):
     cfg = configparser.ConfigParser()
@@ -29,14 +33,17 @@ def read_config(path, device):
     if not cfg.has_section(device):
         cfg.add_section(device)
 
+    CONFIG['port'] = device
     CONFIG['pin'] = cfg.get(device, 'pin')
     CONFIG['poll_interval'] = int(cfg.get(device, 'poll_interval'))
     CONFIG['webhook_url'] = cfg.get(device, 'webhook_url')
     CONFIG['webhook_extra'] = cfg.get(device, 'webhook_extra', fallback=None)
+    CONFIG['metrics_port'] = cfg.get(device, 'metrics_port', fallback=None)
 
 def send_message(message):
     if CONFIG['webhook_extra']:
         message['extra'] = CONFIG['webhook_extra']
+    message['port'] = CONFIG['port']
 
     req = urllib.request.Request(CONFIG['webhook_url'])
     req.add_header('Content-Type', 'application/json; charset=utf-8')
@@ -46,6 +53,7 @@ def send_message(message):
     except urllib.error.URLError as err:
         logging.error('Could not send message: {}'.format(message))
         logging.exception(err)
+        PROM_WEBHOOK_FAILED.labels(CONFIG['port']).inc()
 
 class Modem:
     def __init__(self, port):
@@ -139,6 +147,7 @@ class Modem:
         messages = re.split(r'\d+\. inbox message.*[\n]', cmd[0], flags=re.M | re.I)
         for msg in messages:
             if msg:
+                PROM_RECEIVED_SMS.labels(CONFIG['port']).inc()
                 data = {}
 
                 date = re.search(r'^date/time:(.*)$', msg, re.M | re.I)
@@ -166,6 +175,14 @@ def main():
 
     read_config(args.config, args.port)
     modem = Modem(args.port)
+
+    PROM_RECEIVED_SMS = Counter('eatmysms_sms_received_total', 'Number of SMSes received', ['port'])
+    PROM_RECEIVED_SMS.labels(args.port)
+    PROM_WEBHOOK_FAILED = Counter('eatmysms_webhook_failed_total', 'Number of webhook call failures', ['port'])
+    PROM_WEBHOOK_FAILED.labels(args.port)
+
+    if CONFIG['metrics_port']:
+        start_http_server(int(CONFIG['metrics_port']), '127.0.0.1')
 
     logging.info('Start reading SMS...')
     while True:

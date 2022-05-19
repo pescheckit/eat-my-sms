@@ -1,13 +1,23 @@
 stages:
   - build
 
-build-deb:
+.build: &build
   image: debian
   stage: build
   script:
     - apt update && apt install -y debhelper-compat config-package-dev
-    - dpkg-buildpackage -uc -us
+    - dpkg-buildpackage -uc -us --host-arch $ARCH
     - mv ../*.deb ./
   artifacts:
     paths:
       - "*.deb"
+
+build-amd64:
+  <<: *build
+  variables:
+    ARCH: amd64
+
+build-arm64:
+  <<: *build
+  variables:
+    ARCH: arm64

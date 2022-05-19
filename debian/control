@@ -2,11 +2,11 @@ Source: eat-my-sms
 Section: unknown
 Priority: optional
 Maintainer: Dennis Eijkel <dennis.eijkel@pescheck.nl>
-Build-Depends: debhelper-compat (= 13), config-package-dev (>= 5)
+Build-Depends: debhelper-compat (= 13), config-package-dev (>= 5), curl
 Standards-Version: 4.5.1
 Rules-Requires-Root: no
 
 Package: eat-my-sms
-Architecture: all
+Architecture: any
 Depends: gnokii-cli (>= 0.6), python3 (>=3.5.0), ${misc:Depends}
 Description: Simple automated SMS forwarder
