@@ -182,7 +182,7 @@ def main():
     PROM_WEBHOOK_FAILED.labels(args.port)
 
     if CONFIG['metrics_port']:
-        start_http_server(int(CONFIG['metrics_port']), '127.0.0.1')
+        start_wsgi_server(int(CONFIG['metrics_port']), '127.0.0.1')
 
     logging.info('Start reading SMS...')
     while True:
