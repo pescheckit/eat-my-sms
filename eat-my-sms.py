@@ -11,7 +11,7 @@ import time
 import urllib.error
 import urllib.request
 
-from prometheus_client import start_wsgi_server, Counter
+from prometheus_client import start_wsgi_server, Counter, REGISTRY
 
 CONFIG = {}
 GNOKII_CONFIG_TEMPLATE = '''
@@ -176,6 +176,11 @@ def main():
     read_config(args.config, args.port)
     modem = Modem(args.port)
 
+    # Disable all default collectors
+    for coll in list(REGISTRY._collector_to_names.keys()):
+        REGISTRY.unregister(coll)
+
+    # Register new collectors
     PROM_RECEIVED_SMS = Counter('eatmysms_sms_received_total', 'Number of SMSes received', ['port'])
     PROM_RECEIVED_SMS.labels(args.port)
     PROM_WEBHOOK_FAILED = Counter('eatmysms_webhook_failed_total', 'Number of webhook call failures', ['port'])
