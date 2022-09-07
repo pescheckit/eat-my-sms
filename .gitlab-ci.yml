@@ -29,5 +29,7 @@ test-install:
   stage: test
   dependencies:
     - build-amd64
+  before_script:
+    - apt update && apt install -y gnokii-cli python3 systemd-standalone-sysusers
   script:
     - dpkg -i eat-my-sms_*_amd64.deb
