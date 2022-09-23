@@ -24,6 +24,7 @@ serial_baudrate = 57600
 PROM_RECEIVED_SMS = None
 PROM_WEBHOOK_FAILED = None
 
+
 def read_config(path, device):
     cfg = configparser.ConfigParser()
     cfg.read(path)
@@ -40,6 +41,7 @@ def read_config(path, device):
     CONFIG['webhook_extra'] = cfg.get(device, 'webhook_extra', fallback=None)
     CONFIG['metrics_port'] = cfg.get(device, 'metrics_port', fallback=None)
 
+
 def send_message(message):
     if CONFIG['webhook_extra']:
         message['extra'] = CONFIG['webhook_extra']
@@ -47,13 +49,16 @@ def send_message(message):
 
     req = urllib.request.Request(CONFIG['webhook_url'])
     req.add_header('Content-Type', 'application/json; charset=utf-8')
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36')
+    req.add_header(
+        'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36')
     try:
         urllib.request.urlopen(req, json.dumps(message).encode('utf-8'))
     except urllib.error.URLError as err:
         logging.error('Could not send message: {}'.format(message))
         logging.exception(err)
-        PROM_WEBHOOK_FAILED.labels(CONFIG['port'], CONFIG['webhook_extra'], CONFIG['webhook_url']).inc()
+        PROM_WEBHOOK_FAILED.labels(
+            CONFIG['port'], CONFIG['webhook_extra'], CONFIG['webhook_url']).inc()
+
 
 class Modem:
     def __init__(self, port):
@@ -78,7 +83,8 @@ class Modem:
         while True:
             info = self.network_info()
             if re.match(r'undefined', info['Network code'], re.I):
-                logging.info('Not connected to network yet, waiting to try again...')
+                logging.info(
+                    'Not connected to network yet, waiting to try again...')
                 time.sleep(3)
             else:
                 break
@@ -87,18 +93,28 @@ class Modem:
         logging.info('Modem at /dev/{} initialized'.format(port))
 
     def command(self, *args, input=None):
+        stdin = None
         if input:
             input = input.encode()
+            stdin = subprocess.PIPE
 
-        cmd = subprocess.run(
+        with subprocess.Popen(
             ['gnokii', '--config', self.config, *args],
-            input=input,
+            stdin=stdin,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=10,
-        )
-        stdout = cmd.stdout.decode('utf-8')
-        stderr = cmd.stderr.decode('utf-8')
+            start_new_session=True,
+        ) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=10)
+            except:
+                logging.info(
+                    "Gnokii did not return within set timeout, killing...")
+                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                raise
+
+        stdout = stdout.decode('utf-8')
+        stderr = stderr.decode('utf-8')
 
         err = re.search(r'^error:(.*)$', stderr, re.M | re.I)
         if err:
@@ -144,10 +160,12 @@ class Modem:
         cmd = self.command('--getsms', 'MT', '1', 'end', '--delete')
 
         sms = []
-        messages = re.split(r'\d+\. inbox message.*[\n]', cmd[0], flags=re.M | re.I)
+        messages = re.split(
+            r'\d+\. inbox message.*[\n]', cmd[0], flags=re.M | re.I)
         for msg in messages:
             if msg:
-                PROM_RECEIVED_SMS.labels(CONFIG['port'], CONFIG['webhook_extra'], CONFIG['webhook_url']).inc()
+                PROM_RECEIVED_SMS.labels(
+                    CONFIG['port'], CONFIG['webhook_extra'], CONFIG['webhook_url']).inc()
                 data = {}
 
                 date = re.search(r'^date/time:(.*)$', msg, re.M | re.I)
@@ -159,18 +177,23 @@ class Modem:
                 smsc = re.search(r'msg center:\s+(\+\d+)', msg, re.M | re.I)
                 if smsc:
                     data['smsc'] = smsc.group(1).strip()
-                data['body'] = re.split(r'^text:[\n]', msg, flags=re.M | re.I)[1].strip()
-                
+                data['body'] = re.split(
+                    r'^text:[\n]', msg, flags=re.M | re.I)[1].strip()
+
                 sms.append(data)
 
         return sms
 
+
 def main():
-    logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.INFO)
+    logging.basicConfig(
+        format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.INFO)
 
     parser = argparse.ArgumentParser(description='SMS reader')
-    parser.add_argument('port', metavar='PORT', type=str, help='Device name to communicate with (ex. ttyACM0, see `ls /dev/ttyACM*`)')
-    parser.add_argument('--config', type=str, default='/etc/eat-my-sms/eat-my-sms.conf', help='Config file to use')
+    parser.add_argument('port', metavar='PORT', type=str,
+                        help='Device name to communicate with (ex. ttyACM0, see `ls /dev/ttyACM*`)')
+    parser.add_argument(
+        '--config', type=str, default='/etc/eat-my-sms/eat-my-sms.conf', help='Config file to use')
     args = parser.parse_args()
 
     read_config(args.config, args.port)
@@ -182,13 +205,18 @@ def main():
 
     # Register new collectors
     global PROM_RECEIVED_SMS, PROM_WEBHOOK_FAILED
-    PROM_RECEIVED_SMS = Counter('eatmysms_sms_received_total', 'Number of SMSes received', ['port', 'extra', 'webhook_url'])
-    PROM_RECEIVED_SMS.labels(args.port, CONFIG['webhook_extra'], CONFIG['webhook_url'])
-    PROM_WEBHOOK_FAILED = Counter('eatmysms_webhook_failed_total', 'Number of webhook call failures', ['port', 'extra', 'webhook_url'])
-    PROM_WEBHOOK_FAILED.labels(args.port, CONFIG['webhook_extra'], CONFIG['webhook_url'])
+    PROM_RECEIVED_SMS = Counter('eatmysms_sms_received_total', 'Number of SMSes received', [
+                                'port', 'extra', 'webhook_url'])
+    PROM_RECEIVED_SMS.labels(
+        args.port, CONFIG['webhook_extra'], CONFIG['webhook_url'])
+    PROM_WEBHOOK_FAILED = Counter('eatmysms_webhook_failed_total', 'Number of webhook call failures', [
+                                  'port', 'extra', 'webhook_url'])
+    PROM_WEBHOOK_FAILED.labels(
+        args.port, CONFIG['webhook_extra'], CONFIG['webhook_url'])
 
     if CONFIG['metrics_port']:
-        logging.info('Starting metrics server at 127.0.0.1:{}'.format(CONFIG['metrics_port']))
+        logging.info('Starting metrics server at 127.0.0.1:{}'.format(
+            CONFIG['metrics_port']))
         start_wsgi_server(int(CONFIG['metrics_port']), '127.0.0.1')
 
     logging.info('Start reading SMS...')
@@ -196,6 +224,7 @@ def main():
         for sms in modem.read_sms():
             send_message(sms)
         time.sleep(CONFIG['poll_interval'])
+
 
 if __name__ == '__main__':
     main()
