@@ -19,31 +19,35 @@ Tested with:
 
 ## Installation
 
-### From GitHub Releases
-
-**Download the latest release:**
+### From APT Repository (Recommended)
 
 ```bash
-# Set version and architecture
-VERSION="1.0.3"
-ARCH="amd64"  # or "arm64"
+# Import GPG key
+curl -fsSL https://pescheckit.github.io/eat-my-sms/apt/public.key | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/eat-my-sms.gpg
 
-# Download from GitHub Releases
-wget https://github.com/YOUR-USERNAME/eat-my-sms/releases/download/v${VERSION}/eat-my-sms_${VERSION}_${ARCH}.deb
+# Add repository
+echo "deb [signed-by=/etc/apt/keyrings/eat-my-sms.gpg] https://pescheckit.github.io/eat-my-sms/apt stable main" | \
+  sudo tee /etc/apt/sources.list.d/eat-my-sms.list
 
 # Install
+sudo apt update
+sudo apt install eat-my-sms
+```
+
+### From GitHub Releases (Manual)
+
+```bash
+# Download latest release
+VERSION="1.0.7"
+ARCH="amd64"  # or "arm64"
+
+wget https://github.com/pescheckit/eat-my-sms/releases/download/v${VERSION}/eat-my-sms_${VERSION}_${ARCH}.deb
 sudo dpkg -i eat-my-sms_${VERSION}_${ARCH}.deb
 sudo apt --fix-broken install
 ```
 
-**Latest version:** Check [Releases page](https://github.com/YOUR-USERNAME/eat-my-sms/releases)
-
-### From local .deb file
-
-```bash
-sudo dpkg -i eat-my-sms_*.deb
-sudo apt --fix-broken install
-```
+**Latest version:** [Releases page](https://github.com/pescheckit/eat-my-sms/releases)
 
 ## Configuration
 

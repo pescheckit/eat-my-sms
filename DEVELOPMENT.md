@@ -29,14 +29,14 @@ This project uses **GitHub Actions** for automated building and deployment.
 
 ### Workflows
 
-**On commits to master/main (build-test.yml):**
+**On commits to master (build-test.yml):**
 1. **Build** - Builds packages for amd64 and arm64
 2. **Test** - Tests amd64 package installation
 
-**On version tags (release.yml):**
+**On version tags (publish-apt-repo.yml):**
 1. **Build** - Builds packages + auto-generates changelog with `gbp dch`
-2. **Test** - Tests amd64 package installation
-3. **Release** - Creates GitHub Release with .deb attachments
+2. **Create Release** - Attaches .deb files to GitHub Release
+3. **Publish APT** - Updates APT repository on GitHub Pages with `reprepro`
 
 ### Creating a Release
 
@@ -56,8 +56,9 @@ This project uses **GitHub Actions** for automated building and deployment.
 3. **GitHub Actions automatically:**
    - Generates Debian changelog from all commits since last tag using `gbp dch`
    - Builds `.deb` packages for amd64 and arm64
-   - Tests package installation
    - Creates GitHub Release with packages attached
+   - Publishes to APT repository on GitHub Pages (signed with GPG)
+   - Users can install with: `sudo apt install eat-my-sms`
 
 ### Changelog Generation
 
@@ -157,34 +158,47 @@ serial_baudrate = 115200
 - Slower, more prone to timeouts
 - Not recommended
 
-## GitHub Releases
+## Package Distribution
 
-### Package Distribution
+Packages are distributed two ways:
 
-Packages are distributed via **GitHub Releases** (publicly accessible):
+### 1. APT Repository (GitHub Pages)
+
+**Repository URL:** `https://pescheckit.github.io/eat-my-sms/apt`
+
+**How it works:**
+- Packages are added to a `reprepro` repository
+- Repository is signed with GPG
+- Hosted on GitHub Pages (branch: `gh-pages`)
+- Users add to apt sources and install normally
+
+**Repository structure:**
 ```
-https://github.com/YOUR-USERNAME/eat-my-sms/releases
+gh-pages/
+├── index.html              # Installation instructions
+└── apt/
+    ├── public.key          # GPG public key
+    ├── conf/
+    │   └── distributions   # reprepro config
+    ├── db/                 # reprepro database
+    ├── dists/stable/       # Debian metadata
+    └── pool/main/          # .deb packages
 ```
 
-**Package naming:** `eat-my-sms_{version}_{arch}.deb`
-**Architectures:** `amd64`, `arm64`
+### 2. GitHub Releases (Manual Downloads)
+
+**Releases URL:** `https://github.com/pescheckit/eat-my-sms/releases`
+
+Each release includes:
+- `eat-my-sms_{version}_amd64.deb`
+- `eat-my-sms_{version}_arm64.deb`
+- Auto-generated release notes from commits
 
 ### Authentication
 
 Uses `GITHUB_TOKEN` for automatic authentication in GitHub Actions (predefined secret, no setup needed).
 
-### Download Packages
-
-```bash
-# Public download (no authentication needed for public repos)
-VERSION="1.0.3"
-ARCH="amd64"
-
-wget https://github.com/YOUR-USERNAME/eat-my-sms/releases/download/v${VERSION}/eat-my-sms_${VERSION}_${ARCH}.deb
-
-# Or with curl
-curl -L -O https://github.com/YOUR-USERNAME/eat-my-sms/releases/download/v${VERSION}/eat-my-sms_${VERSION}_${ARCH}.deb
-```
+GPG signing uses `GPG_PRIVATE_KEY` secret (4096-bit RSA key).
 
 ## Testing
 
