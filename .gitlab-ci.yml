@@ -22,6 +22,7 @@ stages:
         gbp dch --new-version="$VERSION" \
                 --distribution=unstable \
                 --release \
+                --ignore-branch \
                 --spawn-editor=never
       fi
     - dpkg-buildpackage -uc -us --host-arch $ARCH
