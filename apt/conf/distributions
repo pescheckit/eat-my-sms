@@ -1,0 +1,7 @@
+Origin: Eat My SMS
+Label: eat-my-sms
+Codename: stable
+Architectures: amd64 arm64
+Components: main
+Description: Eat My SMS Package Repository
+SignWith: 06482C0FCDEC99AF

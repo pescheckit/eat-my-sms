@@ -1,0 +1,28 @@
+Origin: Eat My SMS
+Label: eat-my-sms
+Codename: stable
+Date: Wed, 04 Mar 2026 13:17:22 UTC
+Architectures: amd64 arm64
+Components: main
+Description: Eat My SMS Package Repository
+MD5Sum:
+ 0558d68abe67c090e417b8554fd4a290 566 main/binary-amd64/Packages
+ 59e0cde550d4f0af538d15ad162d2605 411 main/binary-amd64/Packages.gz
+ ac041ae1d272d66d2b7a29ed11161f88 116 main/binary-amd64/Release
+ 25ed07acce8a93241cf4a1906ac9fdd5 566 main/binary-arm64/Packages
+ 1e3186100cb66c7bcd3b5446ed8d2be1 411 main/binary-arm64/Packages.gz
+ 0f2fdcf4bb88be67cd36131aa45f5d12 116 main/binary-arm64/Release
+SHA1:
+ 02ff45b6d8da9e8cfce9439ba13cedc0618136ea 566 main/binary-amd64/Packages
+ f8d85c31d4fc92b4ae435c4074b3356f7173cb61 411 main/binary-amd64/Packages.gz
+ 15565d2e3240e4258287f25cfca9f8609be6c914 116 main/binary-amd64/Release
+ 7a2cd6fde816981ead7bc259e56027c074d4e002 566 main/binary-arm64/Packages
+ ef5224289fb5b24ae10e132604e0330c6a52c63a 411 main/binary-arm64/Packages.gz
+ d917cd80c33e0a9a4b04e53c2c350015f57d30dd 116 main/binary-arm64/Release
+SHA256:
+ a7885da611f622b221a759b17c0f8035840347b86a998f5667f4250213e9f306 566 main/binary-amd64/Packages
+ fae665959a2f335ec9030687dfdc4c753d3f00bee91afb1314bddb7d48472405 411 main/binary-amd64/Packages.gz
+ 2ad29a432428275cf15b03f34a05f9d6594968b1c3811f7a74d2bdf2a7ba3b29 116 main/binary-amd64/Release
+ f9f0aa30839c83a5461060694463bd5d1880e199e5c753aed942ff7b13efccf5 566 main/binary-arm64/Packages
+ 10b7acc0f724027faf9c901c52da5bfec4094a81a10602f13a46bf5832e5d0fb 411 main/binary-arm64/Packages.gz
+ e8cf99e71ad135e22c8c12666e47e01cacdde446fd1902fd3b10b1507a4a6f46 116 main/binary-arm64/Release

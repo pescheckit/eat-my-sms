@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Eat My SMS APT Repository</title></head>
+<body>
+  <h1>Eat My SMS APT Repository</h1>
+  <h2>Installation</h2>
+  <pre>
+# Import GPG key
+curl -fsSL https://pescheckit.github.io/eat-my-sms/apt/public.key | sudo gpg --dearmor -o /etc/apt/keyrings/eat-my-sms.gpg
+
+# Add repository
+echo "deb [signed-by=/etc/apt/keyrings/eat-my-sms.gpg] https://pescheckit.github.io/eat-my-sms/apt stable main" | \
+  sudo tee /etc/apt/sources.list.d/eat-my-sms.list
+
+# Install
+sudo apt update
+sudo apt install eat-my-sms
+  </pre>
+  <p><a href="https://github.com/pescheckit/eat-my-sms">View on GitHub</a></p>
+</body>
+</html>

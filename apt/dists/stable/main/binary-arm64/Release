@@ -1,0 +1,5 @@
+Component: main
+Origin: Eat My SMS
+Label: eat-my-sms
+Architecture: arm64
+Description: Eat My SMS Package Repository
