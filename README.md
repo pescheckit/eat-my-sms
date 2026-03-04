@@ -77,25 +77,38 @@ There you can set default configuration values and override them for specific mo
 
 ## Running
 
-To start (and enable) the script for a specific modem, use the `eat-my-sms@<device>.service` systemd unit as the following example:
+To start (and enable) the script for a specific modem, use the `eat-my-sms@<device>.service` systemd unit.
 
+**Device naming depends on your hardware:**
+- USB hubs: `ttyUSB0`, `ttyUSB1`, etc.
+- Direct USB modems: `ttyACM0`, `ttyACM1`, etc.
+
+**Example with USB hub (ttyUSB):**
 ```console
-# systemctl start eat-my-sms@ttyACM0.service
-# systemctl enable eat-my-sms@ttyACM0.service
+systemctl start eat-my-sms@ttyUSB0.service
+systemctl enable eat-my-sms@ttyUSB0.service
 
-# systemctl start eat-my-sms@ttyACM1.service
-...
+systemctl start eat-my-sms@ttyUSB1.service
+systemctl enable eat-my-sms@ttyUSB1.service
 ```
 
-Systemd (after version 209) supports globbing in the template value (as the parameter is called).
-Please make sure to add the quotes since your shell might expand the `*` to something else.
-And also only use this to restart, stop and disable instances since systemd doesn't know which instances can exist.
-This can be done as follows:
+**Example with direct USB modems (ttyACM):**
+```console
+systemctl start eat-my-sms@ttyACM0.service
+systemctl enable eat-my-sms@ttyACM0.service
+```
+
+**Managing all modems at once** (systemd globbing):
 
 ```console
-# systemctl restart 'eat-my-sms@*.service'
-# systemctl stop 'eat-my-sms@*.service'
+# Restart all running instances
+systemctl restart 'eat-my-sms@*.service'
+
+# Stop all running instances
+systemctl stop 'eat-my-sms@*.service'
 ```
+
+**Note:** Quotes are required to prevent shell expansion of `*`.
 
 ## Metrics
 
