@@ -4,7 +4,9 @@ import argparse
 import configparser
 import json
 import logging
+import os
 import re
+import signal
 import subprocess
 import tempfile
 import time
@@ -19,7 +21,7 @@ GNOKII_CONFIG_TEMPLATE = '''
 port = /dev/{}
 model = AT
 connection = serial
-serial_baudrate = 57600
+serial_baudrate = 115200
 '''
 PROM_RECEIVED_SMS = None
 PROM_WEBHOOK_FAILED = None
@@ -80,12 +82,18 @@ class Modem:
             logging.info('SIM is unlocked')
 
         # Wait until connected to network, then print info
-        while True:
+        max_retries = 20
+        retry_delay = 3
+        for attempt in range(max_retries):
             info = self.network_info()
             if re.match(r'undefined', info['Network code'], re.I):
-                logging.info(
-                    'Not connected to network yet, waiting to try again...')
-                time.sleep(3)
+                if attempt < max_retries - 1:
+                    logging.info('Not connected to network yet (attempt {}/{}), waiting {}s...'.format(
+                        attempt + 1, max_retries, retry_delay))
+                    time.sleep(retry_delay)
+                    retry_delay = min(retry_delay * 2, 30)  # Exponential backoff, max 30s
+                else:
+                    raise Exception('Failed to connect to network after {} attempts'.format(max_retries))
             else:
                 break
         logging.info('Network info: {}'.format(info))
@@ -106,11 +114,14 @@ class Modem:
             start_new_session=True,
         ) as process:
             try:
-                stdout, stderr = process.communicate(input, timeout=10)
-            except:
-                logging.info(
-                    "Gnokii did not return within set timeout, killing...")
+                stdout, stderr = process.communicate(input, timeout=60)
+            except subprocess.TimeoutExpired:
+                logging.warning(
+                    "Gnokii command timed out after 60s, killing process...")
                 os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                raise  # Re-raise to allow retry logic to catch it
+            except Exception as e:
+                logging.error("Gnokii command failed: {}".format(e))
                 raise
 
         stdout = stdout.decode('utf-8')
@@ -131,6 +142,9 @@ class Modem:
             if re.search(r'waiting for pin', msg, re.I):
                 return True
             if re.search(r'nothing to enter', msg, re.I):
+                return False
+            if re.search(r'unknown', msg, re.I):
+                logging.warning('Security code status is unknown, assuming unlocked')
                 return False
             else:
                 raise Exception('Invalid security code status', msg)
@@ -157,7 +171,26 @@ class Modem:
         return info
 
     def read_sms(self):
-        cmd = self.command('--getsms', 'MT', '1', 'end', '--delete')
+        # Use SM (SIM-only) instead of MT (combined ME+SIM) for better reliability
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                cmd = self.command('--getsms', 'SM', '1', 'end', '--delete')
+                break  # Success, exit retry loop
+            except subprocess.TimeoutExpired:
+                if attempt < max_retries - 1:
+                    logging.warning('SMS read timeout (attempt {}/{}), retrying in {}s...'.format(
+                        attempt + 1, max_retries, retry_delay))
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    logging.error('SMS read failed after {} attempts, skipping this poll cycle'.format(max_retries))
+                    return []  # Return empty list, continue polling
+            except Exception as e:
+                logging.error('SMS read error: {}'.format(e))
+                return []  # Return empty list on other errors
 
         sms = []
         messages = re.split(
@@ -177,8 +210,12 @@ class Modem:
                 smsc = re.search(r'msg center:\s+(\+\d+)', msg, re.M | re.I)
                 if smsc:
                     data['smsc'] = smsc.group(1).strip()
-                data['body'] = re.split(
-                    r'^text:[\n]', msg, flags=re.M | re.I)[1].strip()
+
+                body_parts = re.split(r'^text:[\n]', msg, flags=re.M | re.I)
+                if len(body_parts) > 1:
+                    data['body'] = body_parts[1].strip()
+                else:
+                    data['body'] = ''
 
                 sms.append(data)
 
@@ -222,6 +259,8 @@ def main():
     logging.info('Start reading SMS...')
     while True:
         for sms in modem.read_sms():
+            logging.info('Received SMS: from={}, date={}, body={}'.format(
+                sms.get('sender', 'unknown'), sms.get('date', 'unknown'), sms.get('body', '')))
             send_message(sms)
         time.sleep(CONFIG['poll_interval'])
 

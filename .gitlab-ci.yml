@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - deploy
 
 .build: &build
   image: debian
@@ -33,3 +34,23 @@ test-install:
     - apt update && apt install -y gnokii-cli python3 openssl systemd-standalone-sysusers
   script:
     - dpkg -i eat-my-sms_*_amd64.deb
+
+# Upload Debian packages to GitLab Package Registry
+deploy-packages:
+  stage: deploy
+  image: curlimages/curl:latest
+  dependencies:
+    - build-amd64
+    - build-arm64
+  script:
+    # Upload amd64 package
+    - |
+      for DEB in *.deb; do
+        ARCH=$(echo $DEB | grep -oP '(?<=_)[^_]+(?=\.deb)')
+        echo "Uploading $DEB (arch: $ARCH)..."
+        curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${DEB} \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/debian/${DEB}?distribution=stable&component=main&architecture=${ARCH}"
+      done
+  rules:
+    - if: $CI_COMMIT_TAG  # Only upload on tagged releases
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH  # Or on main/master branch
