@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y debhelper-compat config-package-dev python3-pip curl ${{ matrix.extra_pkg }}
+          sudo apt-get install -y build-essential debhelper-compat config-package-dev python3-pip curl ${{ matrix.extra_pkg }}
 
       - name: Build package
         run: |
