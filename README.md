@@ -113,14 +113,24 @@ sudo systemctl status 'eat-my-sms@*.service'
 
 ## Monitoring
 
-**View logs:**
+**View logs from all modems:**
 ```bash
-journalctl -u eat-my-sms@ttyUSB0.service -f
+sudo journalctl -u 'eat-my-sms@*' -f
 ```
 
-**Check status:**
+**View logs from specific modem:**
 ```bash
-systemctl status eat-my-sms@ttyUSB0.service
+sudo journalctl -u eat-my-sms@ttyUSB0.service -f
+```
+
+**Check status of all services:**
+```bash
+sudo systemctl status 'eat-my-sms@*.service'
+```
+
+**Check the target status:**
+```bash
+sudo systemctl status eat-my-sms.target
 ```
 
 **Prometheus metrics** (if enabled):
