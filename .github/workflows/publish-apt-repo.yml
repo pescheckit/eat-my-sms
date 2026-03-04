@@ -89,9 +89,30 @@ jobs:
       - name: Install reprepro
         run: sudo apt-get update && sudo apt-get install -y reprepro
 
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          # If no GPG key secret exists, generate one
+          if ! gpg --list-secret-keys | grep -q .; then
+            echo "Generating GPG key..."
+            gpg --batch --gen-key <<EOF
+          %no-protection
+          Key-Type: RSA
+          Key-Length: 4096
+          Name-Real: Eat My SMS Repository
+          Name-Email: noreply@github.com
+          Expire-Date: 0
+          EOF
+            # Export for display
+            gpg --armor --export noreply@github.com > gh-pages/apt/public.key
+            echo "⚠️  GPG key generated. Save the private key to secrets.GPG_PRIVATE_KEY:"
+            gpg --armor --export-secret-keys noreply@github.com
+          fi
+
       - name: Setup reprepro config
         run: |
           mkdir -p gh-pages/apt/conf
+          GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | head -1 | sed 's/.*\/\([^ ]*\) .*/\1/')
           cat > gh-pages/apt/conf/distributions <<EOF
           Origin: Eat My SMS
           Label: eat-my-sms
@@ -99,6 +120,7 @@ jobs:
           Architectures: amd64 arm64
           Components: main
           Description: Eat My SMS Package Repository
+          SignWith: ${GPG_KEY_ID}
           EOF
 
       - name: Add packages to repository
@@ -107,6 +129,10 @@ jobs:
           for deb in ../../packages/*/*.deb; do
             reprepro includedeb stable "$deb"
           done
+
+      - name: Export GPG public key
+        run: |
+          gpg --armor --export > gh-pages/apt/public.key
 
       - name: Create index.html
         run: |
@@ -118,12 +144,11 @@ jobs:
             <h1>Eat My SMS APT Repository</h1>
             <h2>Installation</h2>
             <pre>
-          # Add repository
-          echo "deb https://pescheckit.github.io/eat-my-sms/apt stable main" | \
-            sudo tee /etc/apt/sources.list.d/eat-my-sms.list
+          # Import GPG key
+          curl -fsSL https://pescheckit.github.io/eat-my-sms/apt/public.key | sudo gpg --dearmor -o /etc/apt/keyrings/eat-my-sms.gpg
 
-          # Trust the repository (no GPG signing yet)
-          echo "deb [trusted=yes] https://pescheckit.github.io/eat-my-sms/apt stable main" | \
+          # Add repository
+          echo "deb [signed-by=/etc/apt/keyrings/eat-my-sms.gpg] https://pescheckit.github.io/eat-my-sms/apt stable main" | \
             sudo tee /etc/apt/sources.list.d/eat-my-sms.list
 
           # Install
