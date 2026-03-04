@@ -81,15 +81,26 @@ systemctl enable eat-my-sms@ttyUSB0.service
 
 **Start multiple modems:**
 ```bash
-systemctl start eat-my-sms@ttyUSB{0,1,3}.service
-systemctl enable eat-my-sms@ttyUSB{0,1,3}.service
+# Start and enable each modem individually
+sudo systemctl start eat-my-sms@ttyUSB0.service
+sudo systemctl enable eat-my-sms@ttyUSB0.service
+
+sudo systemctl start eat-my-sms@ttyUSB1.service
+sudo systemctl enable eat-my-sms@ttyUSB1.service
+
+sudo systemctl start eat-my-sms@ttyUSB3.service
+sudo systemctl enable eat-my-sms@ttyUSB3.service
 ```
 
-**Manage all modems:**
+**Manage all running modems at once:**
 ```bash
-systemctl restart 'eat-my-sms@*.service'
-systemctl stop 'eat-my-sms@*.service'
+# These work with globs (only affects already loaded units)
+sudo systemctl restart 'eat-my-sms@*.service'
+sudo systemctl stop 'eat-my-sms@*.service'
+sudo systemctl status 'eat-my-sms@*.service'
 ```
+
+**Note:** `start` and `enable` don't support globs well - specify each service individually.
 
 ## Monitoring
 
