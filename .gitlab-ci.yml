@@ -57,10 +57,11 @@ deploy-packages:
     - build-amd64
     - build-arm64
   script:
-    # Upload amd64 package
+    # Upload packages
     - |
       for DEB in *.deb; do
-        ARCH=$(echo $DEB | grep -oP '(?<=_)[^_]+(?=\.deb)')
+        # Extract architecture from filename (e.g., eat-my-sms_0.9.0_amd64.deb -> amd64)
+        ARCH=$(echo $DEB | sed -E 's/.*_([^_]+)\.deb$/\1/')
         echo "Uploading $DEB (arch: $ARCH)..."
         curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${DEB} \
           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/debian/${DEB}?distribution=stable&component=main&architecture=${ARCH}"
