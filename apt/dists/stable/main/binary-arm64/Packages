@@ -1,15 +1,15 @@
 Package: eat-my-sms
-Version: 1.1.3
+Version: 1.1.4
 Architecture: arm64
 Maintainer: Eat My SMS Maintainers <noreply@example.com>
 Installed-Size: 10097
 Depends: gnokii-cli (>= 0.6), python3 (>= 3.5.0), openssl, systemd | systemd-standalone-sysusers | systemd-sysusers
 Priority: optional
 Section: unknown
-Filename: pool/main/e/eat-my-sms/eat-my-sms_1.1.3_arm64.deb
-Size: 3082454
-SHA256: b39972dd15e6fe9dfffbcfb6a1abd16bd52e95daba1df88426371e51f1b3d94a
-SHA1: 1713e07782bf556871afb3ee53df8953b60add40
-MD5sum: 045ddc29098d1d4ac0b736135d2dee85
+Filename: pool/main/e/eat-my-sms/eat-my-sms_1.1.4_arm64.deb
+Size: 3082650
+SHA256: b405785948e2a2aade7645a469def3a7922c83cbc1e5a2ade599398c22acfa36
+SHA1: d1285b00b76b426ea618a31394368edc3ab5941d
+MD5sum: 09a63eb46338d83c627cb1a4659227c7
 Description: Simple automated SMS forwarder
 
