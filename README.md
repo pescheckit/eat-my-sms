@@ -25,11 +25,11 @@ A daemon to work with 8-way GSM modem hubs to read SMS messages and send them to
 
 ```bash
 # Import GPG key
-curl -fsSL https://pescheckit.github.io/eat-my-sms/apt/public.key | \
+curl -fsSL https://pescheckit.github.io/pescheck-eat-my-sms/apt/public.key | \
   sudo gpg --dearmor -o /etc/apt/keyrings/eat-my-sms.gpg
 
 # Add repository (specify architectures to avoid i386 warnings)
-echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/eat-my-sms.gpg] https://pescheckit.github.io/eat-my-sms/apt stable main" | \
+echo "deb [arch=amd64,arm64 signed-by=/etc/apt/keyrings/eat-my-sms.gpg] https://pescheckit.github.io/pescheck-eat-my-sms/apt stable main" | \
   sudo tee /etc/apt/sources.list.d/eat-my-sms.list
 
 # Install

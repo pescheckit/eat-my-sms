@@ -164,7 +164,7 @@ Packages are distributed two ways:
 
 ### 1. APT Repository (GitHub Pages)
 
-**Repository URL:** `https://pescheckit.github.io/eat-my-sms/apt`
+**Repository URL:** `https://pescheckit.github.io/pescheck-eat-my-sms/apt`
 
 **How it works:**
 - Packages are added to a `reprepro` repository
