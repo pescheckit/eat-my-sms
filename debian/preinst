@@ -16,6 +16,16 @@ set -e
 
 case "$1" in
     install|upgrade)
+        # Migrate from broken 1.1.5 packaging where these paths were created
+        # as directories (with the source file nested inside) instead of as
+        # regular files. Without this cleanup, dpkg refuses the upgrade with
+        # "trying to overwrite directory with non-directory".
+        if [ -d /usr/bin/eat-my-sms-start-all ]; then
+            rm -rf /usr/bin/eat-my-sms-start-all
+        fi
+        if [ -d /etc/eat-my-sms/devices.conf ]; then
+            rm -rf /etc/eat-my-sms/devices.conf
+        fi
     ;;
 
     abort-upgrade)

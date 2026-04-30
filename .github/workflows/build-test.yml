@@ -43,7 +43,7 @@ jobs:
     name: Test Installation
     needs: build
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Download package
         uses: actions/download-artifact@v4
@@ -53,9 +53,47 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gnokii-cli python3 openssl
+          sudo apt-get install -y gnokii-cli python3 openssl systemd
+
+      - name: Inspect package contents
+        run: |
+          # Show the layout of paths most likely to regress (1.1.5 shipped these
+          # as directories instead of files). The grep must match — a missing
+          # entry means the install file got broken again.
+          dpkg -c eat-my-sms_*_amd64.deb | tee /tmp/contents.txt
+          grep -E ' \./usr/bin/eat-my-sms-start-all$' /tmp/contents.txt
+          grep -E ' \./etc/eat-my-sms/devices\.conf$' /tmp/contents.txt
+          # And confirm neither was packaged as a directory entry.
+          ! grep -E '^d.* \./usr/bin/eat-my-sms-start-all/?$' /tmp/contents.txt
+          ! grep -E '^d.* \./etc/eat-my-sms/devices\.conf/?$' /tmp/contents.txt
 
       - name: Test install
         run: |
-          sudo dpkg -i eat-my-sms_*_amd64.deb || true
+          set -e
+          sudo dpkg -i eat-my-sms_*_amd64.deb
           sudo apt-get --fix-broken install -y
+
+      - name: Verify installed layout
+        run: |
+          set -euo pipefail
+          # Files 1.1.5 broke — must be regular files, executable where relevant.
+          test -f /usr/bin/eat-my-sms-start-all && test -x /usr/bin/eat-my-sms-start-all
+          test -f /etc/eat-my-sms/devices.conf
+          test -f /etc/eat-my-sms/eat-my-sms.conf
+          test -f /usr/share/eat-my-sms/eat-my-sms.py
+          # Every ExecStart in a shipped unit must point to a real executable.
+          for unit in /usr/lib/systemd/system/eat-my-sms*.service; do
+            grep -h '^ExecStart=' "$unit" \
+              | sed 's/^ExecStart=-\?//' \
+              | awk '{print $1}' \
+              | while read -r bin; do
+                  if [ ! -x "$bin" ]; then
+                    echo "Missing or non-exec ExecStart binary: $bin (from $unit)" >&2
+                    exit 1
+                  fi
+                done
+          done
+          # Lint shipped unit files. Failures here are warnings only because
+          # GitHub runners don't have a full systemd userspace, but the output
+          # is useful in logs.
+          systemd-analyze verify /usr/lib/systemd/system/eat-my-sms*.service || true

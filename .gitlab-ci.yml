@@ -48,9 +48,35 @@ test-install:
   dependencies:
     - build-amd64
   before_script:
-    - apt update && apt install -y gnokii-cli python3 openssl systemd-standalone-sysusers
+    - apt update && apt install -y gnokii-cli python3 openssl systemd-standalone-sysusers systemd
   script:
+    # Inspect package contents before installing. The 1.1.5 packaging bug
+    # produced directories where files were expected; these greps fail loudly
+    # if the same regression happens again.
+    - dpkg -c eat-my-sms_*_amd64.deb | tee /tmp/contents.txt
+    - grep -E ' \./usr/bin/eat-my-sms-start-all$' /tmp/contents.txt
+    - grep -E ' \./etc/eat-my-sms/devices\.conf$' /tmp/contents.txt
+    - "! grep -E '^d.* \\./usr/bin/eat-my-sms-start-all/?$' /tmp/contents.txt"
+    - "! grep -E '^d.* \\./etc/eat-my-sms/devices\\.conf/?$' /tmp/contents.txt"
     - dpkg -i eat-my-sms_*_amd64.deb
+    # Verify the on-disk layout the units actually depend on.
+    - test -f /usr/bin/eat-my-sms-start-all && test -x /usr/bin/eat-my-sms-start-all
+    - test -f /etc/eat-my-sms/devices.conf
+    - test -f /etc/eat-my-sms/eat-my-sms.conf
+    - test -f /usr/share/eat-my-sms/eat-my-sms.py
+    - |
+      for unit in /usr/lib/systemd/system/eat-my-sms*.service; do
+        grep -h '^ExecStart=' "$unit" \
+          | sed 's/^ExecStart=-\?//' \
+          | awk '{print $1}' \
+          | while read -r bin; do
+              if [ ! -x "$bin" ]; then
+                echo "Missing or non-exec ExecStart binary: $bin (from $unit)" >&2
+                exit 1
+              fi
+            done
+      done
+    - systemd-analyze verify /usr/lib/systemd/system/eat-my-sms*.service || true
 
 # Upload Debian packages to GitLab Package Registry
 deploy-packages:
