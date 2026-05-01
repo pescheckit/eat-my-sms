@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.request
 
+import serial
 from prometheus_client import start_wsgi_server, Counter, REGISTRY
 
 CONFIG = {}
@@ -23,6 +24,7 @@ model = AT
 connection = serial
 serial_baudrate = 115200
 '''
+DEFAULT_SMS_STORAGE = 'MT'
 PROM_RECEIVED_SMS = None
 PROM_WEBHOOK_FAILED = None
 
@@ -42,6 +44,7 @@ def read_config(path, device):
     CONFIG['webhook_url'] = cfg.get(device, 'webhook_url')
     CONFIG['webhook_extra'] = cfg.get(device, 'webhook_extra', fallback=None)
     CONFIG['metrics_port'] = cfg.get(device, 'metrics_port', fallback=None)
+    CONFIG['sms_storage'] = cfg.get(device, 'sms_storage', fallback=DEFAULT_SMS_STORAGE)
 
 
 def send_message(message):
@@ -65,6 +68,7 @@ def send_message(message):
 class Modem:
     def __init__(self, port):
         logging.info('Initializing modem at /dev/{}'.format(port))
+        self.port = port
 
         with tempfile.NamedTemporaryFile(mode='w+t', prefix='gnokii-', delete=False) as config:
             config.write(GNOKII_CONFIG_TEMPLATE.format(port))
@@ -97,6 +101,12 @@ class Modem:
             else:
                 break
         logging.info('Network info: {}'.format(info))
+
+        # Pick a storage that matches where the modem actually puts incoming
+        # SMS. Default MT reads ME+SIM combined, which works regardless of the
+        # modem's factory default (e.g. Quectel EC25 stores in ME, older modems
+        # often default to SM). SM/ME force a specific storage via AT+CPMS.
+        self.set_sms_storage(CONFIG['sms_storage'])
 
         logging.info('Modem at /dev/{} initialized'.format(port))
 
@@ -170,14 +180,37 @@ class Modem:
                 info[match.group(1).strip()] = match.group(2).strip()
         return info
 
+    def set_sms_storage(self, storage):
+        # MT is the combined ME+SIM view. Setting +CPMS mem3 (incoming) to MT is
+        # not portable — many modems only accept SM or ME for incoming storage.
+        # Since reads via MT span both, we leave incoming storage at the modem's
+        # default and only need to act for explicit SM/ME pins.
+        if storage == 'MT':
+            logging.info('SMS storage: MT (read from combined ME+SIM, no +CPMS override)')
+            return
+
+        # AT+CPMS=<mem1>,<mem2>,<mem3> — read/delete, send/write, receive
+        at = 'AT+CPMS="{0}","{0}","{0}"\r'.format(storage)
+        try:
+            with serial.Serial('/dev/{}'.format(self.port), 115200, timeout=2) as s:
+                s.reset_input_buffer()
+                s.write(at.encode())
+                resp = s.read(256).decode(errors='replace')
+        except serial.SerialException as e:
+            raise Exception('Could not open serial port to set SMS storage', str(e))
+
+        if 'OK' not in resp:
+            raise Exception('Modem rejected AT+CPMS', resp.strip())
+        logging.info('SMS storage set to {}'.format(storage))
+
     def read_sms(self):
-        # Use SM (SIM-only) instead of MT (combined ME+SIM) for better reliability
+        # Storage configured at init via AT+CPMS — see Modem.set_sms_storage
         max_retries = 3
         retry_delay = 2
 
         for attempt in range(max_retries):
             try:
-                cmd = self.command('--getsms', 'SM', '1', 'end', '--delete')
+                cmd = self.command('--getsms', CONFIG['sms_storage'], '1', 'end', '--delete')
                 break  # Success, exit retry loop
             except subprocess.TimeoutExpired:
                 if attempt < max_retries - 1:

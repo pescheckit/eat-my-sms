@@ -172,6 +172,7 @@ done
 | "Timeout" | Modem not responding | Verify baud rate is 115200 |
 | "Unknown security code status" | Transitional state | Script handles automatically |
 | 404 webhook error | Wrong webhook URL | Update `webhook_url` in config |
+| Modem receives SMS but daemon logs nothing | Modem stored SMS in `ME` while daemon only polled `SM` | Default is now `MT` (reads combined ME+SIM); override with `sms_storage` in config if needed |
 
 ### View received SMS in logs
 
