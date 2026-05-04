@@ -54,8 +54,7 @@ def send_message(message):
 
     req = urllib.request.Request(CONFIG['webhook_url'])
     req.add_header('Content-Type', 'application/json; charset=utf-8')
-    req.add_header(
-        'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36')
+    req.add_header('User-Agent', 'EatMySMS/1.0')
     try:
         urllib.request.urlopen(req, json.dumps(message).encode('utf-8'))
     except urllib.error.URLError as err:
